@@ -347,5 +347,57 @@ describe('Collection API', function() {
         expect(ast.expressions[3]).toBe(x);
       });
     });
+
+    describe('removes', function() {
+      it('removes a node if it is part of the body of a statement', function() {
+        var x = b.expressionStatement(b.identifier('x'));
+        var y = b.expressionStatement(b.identifier('y'));
+        var ast = b.program([x, y]);
+
+        var S = Collection.fromNodes([ast])
+          .find(types.Identifier, {name: 'x'})
+          .remove();
+
+        expect(ast.body.length).toBe(1);
+        expect(ast.body[0]).toBe(y);
+      });
+
+      it('removes a node if it is a function param', function() {
+        var x = b.identifier('x');
+        var y = b.identifier('y');
+        var ast = b.arrowFunctionExpression(
+          [x, b.identifier('y')],
+          y
+        );
+
+        var S = Collection.fromNodes([ast])
+          .find(types.Identifier, {name: 'y'})
+          .remove();
+
+        expect(ast.params.length).toBe(1);
+        expect(ast.params[0]).toBe(x);
+        expect(ast.body).toBe(y);
+      });
+
+      it('throws if a node cannot be removed', function() {
+        var ast = b.program([
+          b.expressionStatement(b.binaryExpression(
+            '+',
+            b.identifier('x'),
+            b.identifier('y')
+          ))
+        ]);
+
+        expect(function() {
+          var S = Collection.fromNodes([ast])
+            .find(types.Identifier, {name: 'x'})
+            .remove();
+        }).toThrow(
+          'remove(): Node of type "Identifier" cannot be removed from ' +
+          'node of type "BinaryExpression". Use `replaceWith` instead to ' +
+          'replace the parent node.'
+        );
+      });
+    });
   });
 });

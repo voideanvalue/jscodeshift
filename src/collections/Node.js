@@ -165,6 +165,81 @@ var mutationMethods = {
         (typeof insert === 'function') ? insert.call(path, path, i) : insert;
       path.insertAfter(...toArray(newNodes));
     });
+  },
+
+  remove: function() {
+    this.forEach(function(path) {
+      var lists = [];
+      var parent = path.parent;
+      var value = path.value;
+
+      if (
+        parent &&
+        parent.value &&
+        parent.value.type == 'ExpressionStatement'
+      ) {
+        value = parent.value;
+        parent = parent.parent;
+      }
+
+      assert.ok(
+        parent,
+        'remove(): Node does not have a parent.'
+      );
+
+      var pvalue = parent.value;
+      switch (pvalue.type) {
+        case "Function":
+        case "FunctionDeclaration":
+        case "FunctionExpression":
+          lists.push(pvalue.body, pvalue.params);
+          break;
+        case "ArrowFunctionExpression":
+          lists.push(pvalue.params);
+          break;
+        case "Program":
+        case "BlockStatement":
+        case "DoExpression":
+        case "ClassBody":
+          lists.push(pvalue.body);
+          break;
+        case "ObjectExpression":
+        case "ObjectPattern":
+          lists.push(pvalue.properties);
+          break;
+        case "ArrayExpression":
+        case "ArrayPattern":
+          lists.push(pvalue.elements);
+          break;
+        case "SequenceExpression":
+          lists.push(pvalue.expressions);
+          break;
+        case "CallExpression":
+        case "NewExpression":
+          lists.push(pvalue.arguments);
+          break;
+        case "SwitchCase":
+          lists.push(pvalue.consequent);
+          break;
+        case "VariableDeclaration":
+          lists.push(pvalue.declarations);
+          break;
+      }
+
+      assert.ok(
+        lists.length,
+        'remove(): Node of type "' + value.type + '" cannot be removed from ' +
+        'node of type "' + pvalue.type + '". Use `replaceWith` instead to ' +
+        'replace the parent node.'
+      );
+
+      lists.forEach(function(list) {
+        var index = list.indexOf(value);
+        if (index != -1) {
+          list.splice(index, 1);
+        }
+      });
+    });
   }
 
 };
